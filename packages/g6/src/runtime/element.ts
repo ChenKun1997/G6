@@ -53,7 +53,11 @@ export class ElementController {
   }
 
   public init() {
-    if (!this.container) {
+    this.initContainer();
+  }
+
+  private initContainer() {
+    if (!this.container || this.container.destroyed) {
       const { canvas } = this.context;
       this.container = canvas.appendChild(new Group({ className: 'elements' }));
     }
@@ -848,13 +852,24 @@ export class ElementController {
     )?.finished;
   }
 
-  public destroy() {
+  /**
+   * <zh/> 清空所有元素
+   *
+   * <en/> clear all elements
+   */
+  public clear() {
     this.container.destroy();
+    this.initContainer();
     this.elementMap = {};
     this.shapeTypeMap = {};
     this.defaultStyle = {};
     this.stateStyle = {};
     this.paletteStyle = {};
+  }
+
+  public destroy() {
+    this.clear();
+    this.container.destroy();
     // @ts-expect-error force delete
     this.context = {};
   }

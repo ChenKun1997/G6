@@ -6,7 +6,7 @@ import { COMBO_KEY, GraphEvent, TREE_KEY } from '../constants';
 import { BaseLayout } from '../layouts';
 import type { AntVLayout } from '../layouts/types';
 import { getExtension } from '../registry/get';
-import type { GraphData, NodeData } from '../spec';
+import type { GraphData, LayoutOptions, NodeData } from '../spec';
 import type { STDLayoutOptions } from '../spec/layout';
 import type { DrawData } from '../transforms/types';
 import type { AdaptiveLayout, ID, TreeData } from '../types';
@@ -93,10 +93,11 @@ export class LayoutController {
    * <zh/> 后布局，即在完成绘制后执行布局
    *
    * <en/> Post layout, that is, perform layout after drawing
+   * @param layoutOptions - <zh/> 布局配置项 | <en/> Layout options
    */
-  public async postLayout() {
-    if (!this.options) return;
-    const pipeline = Array.isArray(this.options) ? this.options : [this.options];
+  public async postLayout(layoutOptions: LayoutOptions | undefined = this.options) {
+    if (!layoutOptions) return;
+    const pipeline = Array.isArray(layoutOptions) ? layoutOptions : [layoutOptions];
     const { graph } = this.context;
     emit(graph, new GraphLifeCycleEvent(GraphEvent.BEFORE_LAYOUT, { type: 'post' }));
     for (const options of pipeline) {
@@ -320,12 +321,11 @@ export class LayoutController {
 
     const nodesToLayout = nodes.filter(filterFn);
 
-    const nodesIdMap = new Map<ID, NodeData>(nodesToLayout.map((node) => [idOf(node), node]));
+    const nodeLikeIdsMap = new Map<ID, NodeData>(nodesToLayout.map((node) => [idOf(node), node]));
+    combos.forEach((combo) => nodeLikeIdsMap.set(idOf(combo), combo));
 
-    const edgesToLayout = edges.filter((edge) => {
-      const { source, target } = edge;
-      if (!nodesIdMap.has(source) || !nodesIdMap.has(target)) return false;
-      return true;
+    const edgesToLayout = edges.filter(({ source, target }) => {
+      return nodeLikeIdsMap.has(source) && nodeLikeIdsMap.has(target);
     });
 
     return {
